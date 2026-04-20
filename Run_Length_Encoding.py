@@ -1,4 +1,7 @@
-def compress(data):
+"""
+rle compression
+"""
+def rle_compress(data):
     """Compress bytes data using RLE"""
     if not data:
         return b''
@@ -17,8 +20,7 @@ def compress(data):
 
     return bytes(compressed)
 
-
-def decompress(data):
+def rle_decompress(data):
     """Decompress RLE compressed data"""
     if not data:
         return b''
@@ -33,3 +35,33 @@ def decompress(data):
         result.extend([byte_val] * count)
 
     return bytes(result)
+
+# if __name__ == "__main__":
+#     # Test 1: Simple text
+#     original = b"AAAABBBCCCCCCDD"
+#     compressed = rle_compress(original)
+#     decompressed = rle_decompress(compressed)
+
+#     print("TEST 1: Simple text")
+#     print(f"Original:    {original}")
+#     print(f"Compressed:  {compressed}")
+#     print(f"Decompressed: {decompressed}")
+#     print(f"Correct:     {original == decompressed}")
+#     print()
+
+#     # Test 2: File test
+#     test_file = "test.txt"
+#     with open(test_file, 'w') as f:
+#         f.write("A" * 100 + "B" * 50 + "C" * 30)
+
+#     with open(test_file, 'rb') as f:
+#         original = f.read()
+
+#     compressed = rle_compress(original)
+#     decompressed = rle_decompress(compressed)
+
+#     print("TEST 2: File test")
+#     print(f"Original size:   {len(original)} bytes")
+#     print(f"Compressed size: {len(compressed)} bytes")
+#     print(f"Ratio: {len(compressed)/len(original):.2f}")
+#     print(f"Correct: {original == decompressed}")
