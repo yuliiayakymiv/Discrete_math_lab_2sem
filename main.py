@@ -12,7 +12,7 @@ from our_algorithms.run_length_encoding import rle_compress, rle_decompress
 # from LZ77 import lz77_compress, lz77_decompress
 # from LZW import lzw_compress, lzw_decompress
 # from Burrows_Wheeler_Transform import bwt_compress, bwt_decompress
-# from LZMA import lzma_compress, lzma_decompress
+from our_algorithms.simple_lzma import run_lzma_algorithm
 # from DEFLATE import deflate_compress, deflate_decompress
 
 class DataCodec:
@@ -34,11 +34,11 @@ class DataCodec:
             #     'decode': huffman_decode,
             #     'name': 'Huffman Coding',
             # },
-            # 'lz77': {
-            #     'encode': lz77_encode,
-            #     'decode': lz77_decode,
-            #     'name': 'LZ77',
-            # },
+            'lzma': {
+                'encode': lambda data: run_lzma_algorithm(data, mode='compress'),
+                'decode': lambda data: run_lzma_algorithm(data, mode='decompress'),
+                'name': 'LZMA',
+            },
             # 'lzw': {
             #     'encode': lzw_encode,
             #     'decode': lzw_decode,
@@ -76,11 +76,11 @@ class DataCodec:
         if verbose:
             print(f"\n{'='*50}")
             print(f"COMPRESSION")
-            print(f"{'='*50}")
+            print(f"{'-'*50}")
             print(f"File: {file_info['name']}")
             print(f"Size: {file_info['size']:,} bytes ({file_info['size']/1024:.2f} KB)")
             print(f"Algorithm: {self.algorithms[algorithm]['name']}")
-            print(f"{'='*50}")
+            print(f"{'-'*50}")
 
         original_data = self.read_file(input_file)
         original_size = len(original_data)
@@ -102,7 +102,7 @@ class DataCodec:
             print(f"  Ratio: {ratio:.3f}x")
             print(f"  Time: {compress_time*1000:.2f} ms")
             print(f"\nSaved: {output_file}")
-            print(f"{'='*50}\n")
+            print(f"{'-'*50}\n")
 
         return original_size, compressed_size, compress_time
 
@@ -115,13 +115,13 @@ class DataCodec:
             raise FileNotFoundError(f"File not exists: {input_file}")
 
         if verbose:
-            print(f"\n{'='*50}")
+            print(f"\n{'-'*50}")
             print(f"DECOMPRESSION")
             print(f"{'='*50}")
             print(f"File: {file_info['name']}")
             print(f"Size: {file_info['size']:,} bytes ({file_info['size']/1024:.2f} KB)")
             print(f"Algorithm: {self.algorithms[algorithm]['name']}")
-            print(f"{'='*50}")
+            print(f"{'-'*50}")
 
         compressed_data = self.read_file(input_file)
         compressed_size = len(compressed_data)
@@ -140,21 +140,21 @@ class DataCodec:
             print(f"  Decompressed: {decompressed_size:>10,} bytes")
             print(f"  Time: {decompress_time*1000:.2f} ms")
             print(f"\nSaved: {output_file}")
-            print(f"{'='*50}\n")
+            print(f"{'-'*50}\n")
 
         return compressed_size, decompressed_size, decompress_time
 
     def list_algorithms(self) -> None:
-        print(f"\n{'='*50}")
+        print(f"\n{'-'*50}")
         print("AVAILABLE ALGORITHMS")
-        print(f"{'='*50}")
+        print(f"{'-'*50}")
         for key, algo in self.algorithms.items():
             print(f"  {key.upper()} - {algo['name']}")
-        print(f"{'='*50}\n")
+        print(f"{'-'*50}\n")
 
     def test_algorithm(self, test_file: str, algorithm: str = 'rle') -> dict:
         print(f"\nTESTING {algorithm.upper()}")
-        print(f"{'='*50}")
+        print(f"{'-'*50}")
 
         temp_compressed = f"_temp_{algorithm}.compressed"
         temp_decompressed = f"_temp_{algorithm}.restored"
@@ -216,7 +216,7 @@ Examples:
     compress_parser.add_argument('input', help='Input file')
     compress_parser.add_argument('output', help='Output file')
     compress_parser.add_argument('-a', '--algorithm', default='rle',
-                                 choices=['rle', 'huffman', 'lz77', 'lzw'],
+                                 choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma'],
                                  help='Compression algorithm (default: rle)')
     compress_parser.add_argument('-v', '--verbose', action='store_true',
                                  help='Verbose output')
@@ -225,7 +225,7 @@ Examples:
     decompress_parser.add_argument('input', help='Compressed file')
     decompress_parser.add_argument('output', help='Output file')
     decompress_parser.add_argument('-a', '--algorithm', default='rle',
-                                   choices=['rle', 'huffman', 'lz77', 'lzw'],
+                                   choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma'],
                                    help='Algorithm for decompression (default: rle)')
     decompress_parser.add_argument('-v', '--verbose', action='store_true',
                                    help='Verbose output')
@@ -233,7 +233,7 @@ Examples:
     test_parser = subparsers.add_parser('test', help='Test algorithm')
     test_parser.add_argument('input', help='File for testing')
     test_parser.add_argument('-a', '--algorithm', default='rle',
-                             choices=['rle', 'huffman', 'lz77', 'lzw'],
+                             choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma'],
                              help='Algorithm to test')
 
     subparsers.add_parser('list-algorithms', help='Show available algorithms')
@@ -272,8 +272,8 @@ Examples:
     elif args.command == 'benchmark':
         try:
             print(f"\nBENCHMARK - ALL ALGORITHMS")
-            print(f"{'='*50}")
-            for algo in ['rle', 'huffman', 'lz77', 'lzw']:
+            print(f"{'-'*50}")
+            for algo in ['rle', 'huffman', 'lz77', 'lzw', 'lzma']:
                 codec.test_algorithm(args.input, algo)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
