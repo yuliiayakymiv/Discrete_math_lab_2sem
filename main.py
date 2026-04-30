@@ -12,7 +12,7 @@ import time
 from our_algorithms.lzw_alg import lzw_compress, lzw_decompress
 # from our_algorithms.DEFLATE import deflate_compress, deflate_decompress
 from our_algorithms.simple_lzma import run_lzma_algorithm
-# from our_algorithms.Burrows_Wheeler_Transform import bwt_compress, bwt_decompress
+from our_algorithms.burrows_wheeler_transform import bwt_compress, bwt_decompress
 from our_algorithms.run_length_encoding import rle_compress, rle_decompress
 
 
@@ -28,7 +28,12 @@ class DataCodec:
             'rle': {
                 'encode': rle_compress,
                 'decode': rle_decompress,
-                'name': 'Run-Length Encoding',
+                'name': 'Run-Length Coding',
+            },
+            'bwt': {
+                'encode': bwt_compress,
+                'decode': bwt_decompress,
+                'name': 'BWT Coding',
             },
             # 'huffman': {
             #     'encode': huffman_encode,
@@ -59,6 +64,10 @@ class DataCodec:
 
 
     def read_file(self, file_path: str) -> bytes:
+        """
+        file reader
+        """
+
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -66,6 +75,10 @@ class DataCodec:
             return f.read()
 
     def write_file(self, file_path: str, data: bytes) -> int:
+        """
+        write in file
+        """
+
         with open(file_path, 'wb') as f:
             return f.write(data)
 
@@ -77,6 +90,10 @@ class DataCodec:
         }
 
     def compress(self, input_file: str, output_file: str, algorithm: str, verbose: bool = True):
+        """
+        compression
+        """
+
         if algorithm not in self.algorithms:
             raise ValueError(f"Unknown algorithm: {algorithm}")
 
@@ -118,6 +135,9 @@ class DataCodec:
         return original_size, compressed_size, compress_time
 
     def decompress(self, input_file: str, output_file: str, algorithm: str, verbose: bool = True):
+        """
+        decompression
+        """
         if algorithm not in self.algorithms:
             raise ValueError(f"Unknown algorithm: {algorithm}")
 
@@ -227,7 +247,7 @@ Examples:
     compress_parser.add_argument('input', help='Input file')
     compress_parser.add_argument('output', help='Output file')
     compress_parser.add_argument('-a', '--algorithm',
-                                 choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate'],
+                                 choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
                                  help='Compression algorithm (default: rle)')
     compress_parser.add_argument('-v', '--verbose', action='store_true',
                                  help='Verbose output')
@@ -236,7 +256,7 @@ Examples:
     decompress_parser.add_argument('input', help='Compressed file')
     decompress_parser.add_argument('output', help='Output file')
     decompress_parser.add_argument('-a', '--algorithm',
-                                   choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate'],
+                                   choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
                                    help='Algorithm for decompression (default: rle)')
     decompress_parser.add_argument('-v', '--verbose', action='store_true',
                                    help='Verbose output')
@@ -244,7 +264,7 @@ Examples:
     test_parser = subparsers.add_parser('test', help='Test algorithm')
     test_parser.add_argument('input', help='File for testing')
     test_parser.add_argument('-a', '--algorithm',
-                             choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate'],
+                             choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
                              help='Algorithm to test')
 
     subparsers.add_parser('list-algorithms', help='Show available algorithms')
@@ -284,7 +304,7 @@ Examples:
         try:
             print(f"\nBENCHMARK - ALL ALGORITHMS")
             print(f"{'-'*50}")
-            for algo in ['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate']:
+            for algo in ['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt']:
                 codec.test_algorithm(args.input, algo)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
