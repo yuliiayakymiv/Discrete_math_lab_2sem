@@ -1,6 +1,7 @@
 """
 Canonical Huffman coding module.
 """
+import struct
 class HuffmanNode:
     """
     A node in a Huffman binary tree.
@@ -145,3 +146,52 @@ class HuffMan:
         codes        = self.build_canonical_codes(lengths)
         decode_table = self.build_decode_table(codes)
         return codes, decode_table
+
+def huffman_compress(data: bytes) -> bytes:
+    huff = HuffMan()
+    codes, _ = huff.encode_frequencies(list(data))
+    out = bytearray()
+    out += struct.pack('<I', len(data))       # ← зберігаємо оригінальну довжину
+    out += struct.pack('<H', len(codes))
+    for sym, (code, length) in codes.items():
+        out += struct.pack('<BB', sym, length)
+    current = 0
+    bits = 0
+    for byte in data:
+        code, length = codes[byte]
+        for i in range(length - 1, -1, -1):
+            current = (current << 1) | ((code >> i) & 1)
+            bits += 1
+            if bits == 8:
+                out.append(current)
+                current = 0
+                bits = 0
+    if bits > 0:
+        out.append(current << (8 - bits))
+    return bytes(out)
+
+def huffman_decompress(data: bytes) -> bytes:
+    i = 0
+    original_len = struct.unpack('<I', data[i:i+4])[0]; i += 4  # ← читаємо довжину
+    num_codes = struct.unpack('<H', data[i:i+2])[0]; i += 2
+    code_lengths = {}
+    for _ in range(num_codes):
+        sym, length = struct.unpack('<BB', data[i:i+2]); i += 2
+        code_lengths[sym] = length
+    huff = HuffMan()
+    codes = huff.build_canonical_codes(code_lengths)
+    decode_table = huff.build_decode_table(codes)
+    out = bytearray()
+    current = 0
+    length = 0
+    for byte in data[i:]:
+        for bit in range(7, -1, -1):
+            current = (current << 1) | ((byte >> bit) & 1)
+            length += 1
+            if (current, length) in decode_table:
+                out.append(decode_table[(current, length)])
+                current = 0
+                length = 0
+                if len(out) == original_len:  # ← зупиняємось вчасно
+                    return bytes(out)
+    return bytes(out)

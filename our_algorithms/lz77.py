@@ -1,6 +1,7 @@
 """
 LZ77 compression / decompression module.
 """
+import struct
 WINDOW_SIZE   = 32_768  # 32 KB sliding look-back window
 MAX_MATCH_LEN = 258     # maximum match length
 MIN_MATCH_LEN = 3       # minimum match length worth referencing
@@ -96,3 +97,27 @@ class LZ77:
                 for i in range(token.length):
                     output.append(output[start + i])
         return bytes(output)
+
+def lz77_compress(data: bytes) -> bytes:
+    tokens = LZ77().compress(data)
+    out = bytearray()
+    for token in tokens:
+        if token.is_literal():
+            out.append(0)
+            out.append(token.literal)
+        else:
+            out.append(1)
+            out += struct.pack('<HH', token.distance, token.length)
+    return bytes(out)
+
+def lz77_decompress(data: bytes) -> bytes:
+    tokens = []
+    i = 0
+    while i < len(data):
+        kind = data[i]; i += 1
+        if kind == 0:
+            tokens.append(LZ77Token(literal=data[i])); i += 1
+        else:
+            dist, length = struct.unpack('<HH', data[i:i+4]); i += 4
+            tokens.append(LZ77Token(distance=dist, length=length))
+    return LZ77().decompress(tokens)
