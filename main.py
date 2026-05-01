@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 import time
+import json
 
 # from our_algorithms.Huffman import huffman_compress, huffman_decompress
 # from our_algorithms.LZ77 import lz77_compress, lz77_decompress
@@ -14,6 +15,7 @@ from our_algorithms.lzw_alg import lzw_compress, lzw_decompress
 from our_algorithms.simple_lzma import run_lzma_algorithm
 from our_algorithms.burrows_wheeler_transform import bwt_compress, bwt_decompress
 from our_algorithms.run_length_encoding import rle_compress, rle_decompress
+from our_algorithms.arithmetic_coding import arithmetic_compress, arithmetic_decompress
 
 
 class DataCodec:
@@ -34,6 +36,11 @@ class DataCodec:
                 'encode': bwt_compress,
                 'decode': bwt_decompress,
                 'name': 'BWT Coding',
+            },
+            'arithmetic': {
+                'encode': arithmetic_compress,
+                'decode': arithmetic_decompress,
+                'name': 'Adaptive Arithmetic Coding',
             },
             # 'huffman': {
             #     'encode': huffman_encode,
@@ -118,7 +125,12 @@ class DataCodec:
         compressed_data = encode_func(original_data)
         compress_time = time.time() - start_time
 
-        self.write_file(output_file, compressed_data)
+        header = {"alg": algorithm}
+        header_bytes = json.dumps(header).encode('utf-8') + b'\n' #Заголовок у перший рядок
+        self.write_file(output_file, header_bytes + compressed_data)
+
+        # self.write_file(output_file, compressed_data)
+
         compressed_size = len(compressed_data)
 
         ratio = compressed_size / original_size if original_size > 0 else 1.0
@@ -154,10 +166,20 @@ class DataCodec:
             print(f"Algorithm: {self.algorithms[algorithm]['name']}")
             print(f"{'-'*50}")
 
-        compressed_data = self.read_file(input_file)
+        full_data = self.read_file(input_file)
+
+        #Відділення заголовку (перший рядок) від даних
+        header_line, compressed_data = full_data.split(b'\n', 1)
+        header = json.loads(header_line.decode('utf-8'))
+
+        #Зчитування алгоритму
+        algorithm = header['alg']
+        decode_func = self.algorithms[algorithm]['decode']
+
+        # compressed_data = self.read_file(input_file)
         compressed_size = len(compressed_data)
 
-        decode_func = self.algorithms[algorithm]['decode']
+        # decode_func = self.algorithms[algorithm]['decode']
         start_time = time.time()
         decompressed_data = decode_func(compressed_data)
         decompress_time = time.time() - start_time
@@ -187,8 +209,9 @@ class DataCodec:
         print(f"\nTESTING {algorithm.upper()}")
         print(f"{'-'*50}")
 
-        temp_compressed = f"_temp_{algorithm}.compressed"
-        temp_decompressed = f"_temp_{algorithm}.restored"
+        temp_compressed = f"_temp_{algorithm}.meow"
+        extension = os.path.splitext(test_file)[1]
+        temp_decompressed = f"_temp_{algorithm}_restored{extension}"
 
         try:
             orig_size, comp_size, comp_time = self.compress(
@@ -228,6 +251,7 @@ class DataCodec:
                     os.remove(temp_file)
 
 
+
 def main():
     parser = argparse.ArgumentParser(
         description='Universal Data Compression Codec',
@@ -247,7 +271,7 @@ Examples:
     compress_parser.add_argument('input', help='Input file')
     compress_parser.add_argument('output', help='Output file')
     compress_parser.add_argument('-a', '--algorithm',
-                                 choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
+                                 choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt', 'arithmetic'],
                                  help='Compression algorithm (default: rle)')
     compress_parser.add_argument('-v', '--verbose', action='store_true',
                                  help='Verbose output')
@@ -256,7 +280,7 @@ Examples:
     decompress_parser.add_argument('input', help='Compressed file')
     decompress_parser.add_argument('output', help='Output file')
     decompress_parser.add_argument('-a', '--algorithm',
-                                   choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
+                                   choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt', 'arithmetic'],
                                    help='Algorithm for decompression (default: rle)')
     decompress_parser.add_argument('-v', '--verbose', action='store_true',
                                    help='Verbose output')
@@ -264,7 +288,7 @@ Examples:
     test_parser = subparsers.add_parser('test', help='Test algorithm')
     test_parser.add_argument('input', help='File for testing')
     test_parser.add_argument('-a', '--algorithm',
-                             choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt'],
+                             choices=['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt', 'arithmetic'],
                              help='Algorithm to test')
 
     subparsers.add_parser('list-algorithms', help='Show available algorithms')
@@ -276,9 +300,19 @@ Examples:
 
     codec = DataCodec()
 
+    # if args.command == 'compress':
+    #     try:
+    #         codec.compress(args.input, args.output, args.algorithm, args.verbose)
+    #     except Exception as e:
+    #         print(f"Error: {e}", file=sys.stderr)
+    #         sys.exit(1)
+
     if args.command == 'compress':
         try:
-            codec.compress(args.input, args.output, args.algorithm, args.verbose)
+            output_file = args.output
+            if not output_file.endswith('.meow'):
+                output_file += '.meow'
+            codec.compress(args.input, output_file, args.algorithm, args.verbose)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
