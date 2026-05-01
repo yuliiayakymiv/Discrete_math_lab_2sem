@@ -39,8 +39,8 @@ class HuffMan:
             Root of the constructed Huffman tree.
         """
         if len(frequencies) == 1:                    # single-symbol edge case: depth-1 tree.
-            sym  = list(frequencies.keys())[0]
-            leaf  = HuffmanNode(symbol=sym, freq=frequencies[sym])
+            sym = list(frequencies.keys())[0]
+            leaf = HuffmanNode(symbol=sym, freq=frequencies[sym])
             dummy = HuffmanNode(symbol=sym, freq=0)
             return HuffmanNode(freq=frequencies[sym], left=leaf, right=dummy)
 
@@ -51,7 +51,7 @@ class HuffMan:
         while len(nodes) > 1:
             # Sort by (frequency, symbol) for a deterministic result.
             nodes.sort(key=lambda x: (x.freq, x.symbol if x.symbol is not None else -1))
-            left  = nodes.pop(0)
+            left = nodes.pop(0)
             right = nodes.pop(0)
             parent = HuffmanNode(
                 freq=left.freq + right.freq,
@@ -141,9 +141,9 @@ class HuffMan:
         for sym in data:
             frequencies[sym] = frequencies.get(sym, 0) + 1
 
-        root         = self.build_tree(dict(frequencies))
-        lengths      = self.get_code_lengths(root)
-        codes        = self.build_canonical_codes(lengths)
+        root = self.build_tree(dict(frequencies))
+        lengths = self.get_code_lengths(root)
+        codes = self.build_canonical_codes(lengths)
         decode_table = self.build_decode_table(codes)
         return codes, decode_table
 
