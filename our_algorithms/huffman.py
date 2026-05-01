@@ -39,8 +39,8 @@ class HuffMan:
             Root of the constructed Huffman tree.
         """
         if len(frequencies) == 1:                    # single-symbol edge case: depth-1 tree.
-            sym  = list(frequencies.keys())[0]
-            leaf  = HuffmanNode(symbol=sym, freq=frequencies[sym])
+            sym = list(frequencies.keys())[0]
+            leaf = HuffmanNode(symbol=sym, freq=frequencies[sym])
             dummy = HuffmanNode(symbol=sym, freq=0)
             return HuffmanNode(freq=frequencies[sym], left=leaf, right=dummy)
 
@@ -51,7 +51,7 @@ class HuffMan:
         while len(nodes) > 1:
             # Sort by (frequency, symbol) for a deterministic result.
             nodes.sort(key=lambda x: (x.freq, x.symbol if x.symbol is not None else -1))
-            left  = nodes.pop(0)
+            left = nodes.pop(0)
             right = nodes.pop(0)
             parent = HuffmanNode(
                 freq=left.freq + right.freq,
@@ -141,9 +141,9 @@ class HuffMan:
         for sym in data:
             frequencies[sym] = frequencies.get(sym, 0) + 1
 
-        root         = self.build_tree(dict(frequencies))
-        lengths      = self.get_code_lengths(root)
-        codes        = self.build_canonical_codes(lengths)
+        root = self.build_tree(dict(frequencies))
+        lengths = self.get_code_lengths(root)
+        codes = self.build_canonical_codes(lengths)
         decode_table = self.build_decode_table(codes)
         return codes, decode_table
 
@@ -151,7 +151,7 @@ def huffman_compress(data: bytes) -> bytes:
     huff = HuffMan()
     codes, _ = huff.encode_frequencies(list(data))
     out = bytearray()
-    out += struct.pack('<I', len(data))       # ← зберігаємо оригінальну довжину
+    out += struct.pack('<I', len(data))       # зберігаємо оригінальну довжину
     out += struct.pack('<H', len(codes))
     for sym, (code, length) in codes.items():
         out += struct.pack('<BB', sym, length)
@@ -172,7 +172,7 @@ def huffman_compress(data: bytes) -> bytes:
 
 def huffman_decompress(data: bytes) -> bytes:
     i = 0
-    original_len = struct.unpack('<I', data[i:i+4])[0]; i += 4  # ← читаємо довжину
+    original_len = struct.unpack('<I', data[i:i+4])[0]; i += 4  # читаємо довжину
     num_codes = struct.unpack('<H', data[i:i+2])[0]; i += 2
     code_lengths = {}
     for _ in range(num_codes):
@@ -192,6 +192,6 @@ def huffman_decompress(data: bytes) -> bytes:
                 out.append(decode_table[(current, length)])
                 current = 0
                 length = 0
-                if len(out) == original_len:  # ← зупиняємось вчасно
+                if len(out) == original_len:  # зупиняємось вчасно
                     return bytes(out)
     return bytes(out)
