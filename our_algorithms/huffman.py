@@ -151,7 +151,7 @@ def huffman_compress(data: bytes) -> bytes:
     huff = HuffMan()
     codes, _ = huff.encode_frequencies(list(data))
     out = bytearray()
-    out += struct.pack('<I', len(data))       # ← зберігаємо оригінальну довжину
+    out += struct.pack('<I', len(data))       # зберігаємо оригінальну довжину
     out += struct.pack('<H', len(codes))
     for sym, (code, length) in codes.items():
         out += struct.pack('<BB', sym, length)
@@ -172,7 +172,7 @@ def huffman_compress(data: bytes) -> bytes:
 
 def huffman_decompress(data: bytes) -> bytes:
     i = 0
-    original_len = struct.unpack('<I', data[i:i+4])[0]; i += 4  # ← читаємо довжину
+    original_len = struct.unpack('<I', data[i:i+4])[0]; i += 4  # читаємо довжину
     num_codes = struct.unpack('<H', data[i:i+2])[0]; i += 2
     code_lengths = {}
     for _ in range(num_codes):
@@ -192,6 +192,6 @@ def huffman_decompress(data: bytes) -> bytes:
                 out.append(decode_table[(current, length)])
                 current = 0
                 length = 0
-                if len(out) == original_len:  # ← зупиняємось вчасно
+                if len(out) == original_len:  # зупиняємось вчасно
                     return bytes(out)
     return bytes(out)
