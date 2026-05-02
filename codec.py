@@ -120,8 +120,8 @@ class DataCodec:
         compressed_data = encode_func(original_data)
         compress_time = time.time() - start_time
 
-        header = {"alg": algorithm}
-        header_bytes = json.dumps(header).encode('utf-8') + b'\n' #Заголовок у перший рядок
+        # header = {"a": algorithm}
+        header_bytes = algorithm.encode('utf-8') + b'\n' #Заголовок у перший рядок
         self.write_file(output_file, header_bytes + compressed_data)
         compressed_size = len(compressed_data)
 
@@ -162,10 +162,10 @@ class DataCodec:
 
         #Відділення заголовку (перший рядок) від даних
         header_line, compressed_data = full_data.split(b'\n', 1)
-        header = json.loads(header_line.decode('utf-8'))
+        # header = json.loads(header_line.decode('utf-8'))
 
-        #Зчитування алгоритму
-        algorithm = header['alg']
+        # algorithm = header['a']
+        algorithm = header_line.decode('utf-8').strip()
         decode_func = self.algorithms[algorithm]['decode']
 
         compressed_size = len(compressed_data)
