@@ -2,10 +2,9 @@
 LZ77 compression / decompression module.
 """
 import struct
-WINDOW_SIZE = 32_768  # 32 KB sliding look-back window
-MAX_MATCH_LEN = 258   # maximum match length
-MIN_MATCH_LEN = 3     # minimum match length worth referencingn
-MAX_CANDIDATES = 32   # how many hash bucket entries to check per position
+WINDOW_SIZE   = 32_768  # 32 KB sliding look-back window
+MAX_MATCH_LEN = 258     # maximum match length
+MIN_MATCH_LEN = 3       # minimum match length worth referencing
 
 
 class LZ77Token:
@@ -54,26 +53,15 @@ class LZ77:
             best_distance = 0
 
             if pos + MIN_MATCH_LEN <= n:
-                key = data[pos : pos + MIN_MATCH_LEN]
-
-                # merged get() & setdefault() into one dict lookup
-                bucket = hash_table.setdefault(key, [])
-                candidates = bucket
-
-                # only slice if the bucket is actually oversized
-                cands = candidates if len(candidates) <= MAX_CANDIDATES else candidates[-MAX_CANDIDATES:]
-
-                for candidate in reversed(cands):
-                    if pos - candidate > WINDOW_SIZE:
-                        break  # candidates are stored oldest-first, so we can stop early
-
-                    # replaced byte-by-byte Python loop with slice comparison
-                    a = data[pos : pos + MAX_MATCH_LEN]
-                    b = data[candidate : candidate + MAX_MATCH_LEN]
-                    match_len = next(
-                        (i for i, (x, y) in enumerate(zip(a, b)) if x != y),
-                        min(len(a), len(b)),
-                    )
+                candidate = pos - 1
+                while candidate >= window_start:
+                    match_len = 0
+                    while (
+                        match_len < MAX_MATCH_LEN
+                        and pos + match_len < n
+                        and data[candidate + match_len] == data[pos + match_len]
+                    ):
+                        match_len += 1
 
                     if match_len > best_length:
                         best_length   = match_len
@@ -82,23 +70,10 @@ class LZ77:
                     if best_length == MAX_MATCH_LEN:
                         break
 
-            if pos + MIN_MATCH_LEN <= n:
-                # reuse bucket instead of looking up again
-                if len(bucket) > MAX_CANDIDATES * 2:
-                    del bucket[:MAX_CANDIDATES]  # evict oldest entries outside the window
-                bucket.append(pos)
+                    candidate -= 1
 
             if best_length >= MIN_MATCH_LEN:
                 tokens.append(LZ77Token(distance=best_distance, length=best_length))
-
-                # limit intermediate position registration to first 3 skips
-                for skip in range(1, min(best_length, 4)):
-                    p = pos + skip
-                    if p + MIN_MATCH_LEN <= n:
-                        k = data[p : p + MIN_MATCH_LEN]
-                        b = hash_table.setdefault(k, [])
-                        b.append(p)
-
                 pos += best_length
             else:
                 tokens.append(LZ77Token(literal=data[pos]))
