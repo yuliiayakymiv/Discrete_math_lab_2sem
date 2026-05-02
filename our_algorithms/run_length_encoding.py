@@ -1,36 +1,61 @@
 """
-rle compression
+RLE compression
 """
 def rle_compress(data: bytes) -> bytes:
-    """групує однакові байти разом"""
     if not data:
-        return b''
+        return b""
 
-    encoded = bytearray()
+    buf = bytearray()
     i = 0
-    while i < len(data):
-        count = 1
-        while i + count < len(data) and data[i + count] == data[i] and count < 255:
-            count += 1
+    n = len(data)
 
-        if count > 1:
-            encoded.append(count)
-            encoded.append(data[i])
+    while i < n:
+        # check for a repeat run
+        run = 1
+        while i + run < n and data[i + run] == data[i] and run < 255:
+            run += 1
+
+        if run >= 3:
+            # worth encoding as a repeat
+            buf.append(0x00)
+            buf.append(run)
+            buf.append(data[i])
+            i += run
         else:
-            encoded.append(1)
-            encoded.append(data[i])
+            # gather a literal run (stop before a long repeat)
+            j = i
+            while j < n and j - i < 127:
+                # peek: if a repeat of ≥3 starts here, stop the literal run
+                rep = 1
+                while j + rep < n and data[j + rep] == data[j] and rep < 255:
+                    rep += 1
+                if rep >= 3:
+                    break
+                j += 1
+            length = j - i
+            buf.append(length)
+            buf.extend(data[i:i + length])
+            i += length
 
-        i += count
-    return bytes(encoded)
+    return bytes(buf)
 
 
-def rle_decompress(data):
-    """Decompress RLE compressed data"""
-    decoded = bytearray()
+def rle_decompress(data: bytes) -> bytes:
+    if not data:
+        return b""
+
+    out = bytearray()
     i = 0
-    while i < len(data):
-        count = data[i]
-        byte_val = data[i + 1]
-        decoded.extend([byte_val] * count)
-        i += 2
-    return bytes(decoded)
+    n = len(data)
+
+    while i < n:
+        flag = data[i]; i += 1
+        if flag == 0x00:          # repeat packet
+            count = data[i];     i += 1
+            byte  = data[i];     i += 1
+            out.extend(bytes([byte]) * count)
+        else:                     # literal packet
+            out.extend(data[i:i + flag])
+            i += flag
+
+    return bytes(out)
