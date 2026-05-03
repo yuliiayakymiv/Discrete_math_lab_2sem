@@ -427,7 +427,7 @@ def deflate_compress(input_file_path: str, output_file_path: str):
       4 bytes: original data size (uint32 LE)
       rest:    bit stream with compressed blocks
     """
-    
+
     with open(input_file_path, "rb") as f:
         data = f.read()
 

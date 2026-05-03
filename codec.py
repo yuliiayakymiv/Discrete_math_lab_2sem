@@ -4,7 +4,7 @@ import json
 
 
 from our_algorithms.lz77 import lz77_compress, lz77_decompress
-from our_algorithms.huffman import huffman_compress, huffman_decompress
+from our_algorithms.huffman_2 import huffman_compress, huffman_decompress
 from our_algorithms.lzw_alg import lzw_compress, lzw_decompress
 from our_algorithms.deflate import deflate_compress_bytes, deflate_decompress_bytes
 # from our_algorithms.simple_lzma import run_lzma_algorithm
