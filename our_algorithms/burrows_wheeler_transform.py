@@ -1,70 +1,75 @@
 """
-Burrows-Wheeler Transform (BWT)
-алгоритм перестановки даних
+Burrows-Wheeler Transform + RLE compression
 """
 
 from our_algorithms.run_length_encoding import rle_compress, rle_decompress
 
-def bwt_encode(data: bytes) -> bytes:
-    """Burrows-Wheeler Transform - кодування"""
-    if not data:
-        return b''
-
+def _build_sa(data: bytes) -> list[int]:
     n = len(data)
-    rotations = [data[i:] + data[:i] for i in range(n)]
+    rank = list(data)
+    sa = sorted(range(n), key=lambda i: rank[i])
 
-    rotations.sort()
-    last_column = bytes(rot[-1] for rot in rotations)
-
-    original_index = 0
-    for i, rot in enumerate(rotations):
-        if rot == data:
-            original_index = i
+    k = 1
+    while k < n:
+        def key(i, k=k):
+            return (rank[i], rank[(i + k) % n])  # % n = cyclic wrap
+        sa = sorted(range(n), key=key)
+        new_rank = [0] * n
+        for i in range(1, n):
+            new_rank[sa[i]] = new_rank[sa[i-1]] + (key(sa[i]) != key(sa[i-1]))
+        rank = new_rank
+        if rank[sa[-1]] == n - 1:
             break
+        k *= 2
+    return sa
 
-    return last_column + original_index.to_bytes(4, 'little')
 
+def bwt_encode(data: bytes) -> bytes:
+    if not data:
+        return b""
+    n = len(data)
+    sa = _build_sa(data)
+    last_column = bytes(data[(i - 1) % n] for i in sa)
+    original_index = sa.index(0)
+    return last_column + original_index.to_bytes(4, "little")
 
 
 def bwt_decode(data: bytes) -> bytes:
-    """Burrows-Wheeler Transform - декодування."""
     if not data:
-        return b''
-
+        return b""
     last_column = data[:-4]
+    original_index = int.from_bytes(data[-4:], "little")
     n = len(last_column)
-    original_index = int.from_bytes(data[-4:], 'little')
 
-    table = [b''] * n
+    count = [0] * 256
+    rank = [0] * n
+    for i, b in enumerate(last_column):
+        rank[i] = count[b]
+        count[b] += 1
 
-    for _ in range(n):
-        for i in range(n):
-            table[i] = bytes([last_column[i]]) + table[i]
-        table.sort()
+    start = [0] * 256
+    total = 0
+    for sym in range(256):
+        start[sym] = total
+        total += count[sym]
 
-    return table[original_index]
+    result = bytearray(n)
+    row = original_index
+    for i in range(n - 1, -1, -1):
+        b = last_column[row]
+        result[i] = b
+        row = start[b] + rank[row]
+
+    return bytes(result)
+
 
 def bwt_compress(data: bytes) -> bytes:
-    """
-    BWT + RLE - стиснення
-    """
     if not data:
-        return b''
-
-    bwt_data = bwt_encode(data)
-    compressed = rle_compress(bwt_data)
-
-    return compressed
+        return b""
+    return rle_compress(bwt_encode(data))
 
 
 def bwt_decompress(data: bytes) -> bytes:
-    """
-    Розпакування BWT + RLE
-    """
     if not data:
-        return b''
-
-    rle_decompressed = rle_decompress(data)
-    original = bwt_decode(rle_decompressed)
-
-    return original
+        return b""
+    return bwt_decode(rle_decompress(data))
