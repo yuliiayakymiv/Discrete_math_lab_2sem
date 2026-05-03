@@ -1,9 +1,18 @@
+"""
+LZW
+"""
+
 MAX_BITS = 16
 CLEAR_CODE = 256
 EOF_CODE = 257
 FIRST_CODE = 258
 
+
 def lzw_compress(data: bytes) -> bytes:
+    """
+    lzw_compress
+    """
+
     if not data:
         return b""
 
@@ -47,6 +56,10 @@ def lzw_compress(data: bytes) -> bytes:
 
 
 def lzw_decompress(data: bytes) -> bytes:
+    """
+    lzw_decompress
+    """
+
     if not data:
         return b""
 
