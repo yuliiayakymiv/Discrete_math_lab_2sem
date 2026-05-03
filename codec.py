@@ -7,7 +7,7 @@ from our_algorithms.lz77 import lz77_compress, lz77_decompress
 from our_algorithms.huffman_2 import huffman_compress, huffman_decompress
 from our_algorithms.lzw_alg import lzw_compress, lzw_decompress
 from our_algorithms.deflate import deflate_compress_bytes, deflate_decompress_bytes
-# from our_algorithms.simple_lzma import run_lzma_algorithm
+from our_algorithms.lzma import compress, decompress
 from our_algorithms.burrows_wheeler_transform import bwt_compress, bwt_decompress
 from our_algorithms.run_length_encoding import rle_compress, rle_decompress
 from our_algorithms.arithmetic_coding import arithmetic_compress, arithmetic_decompress
@@ -47,11 +47,11 @@ class DataCodec:
                 'decode': deflate_decompress_bytes,
                 'name': 'DEFLATE Coding',
             },
-            # 'lzma': {
-            #     'encode': lambda data: run_lzma_algorithm(data, mode='compress'),
-            #     'decode': lambda data: run_lzma_algorithm(data, mode='decompress'),
-            #     'name': 'LZMA',
-            # },
+            'lzma': {
+                'encode': compress,
+                'decode': decompress,
+                'name': 'LZMA',
+            },
             'lzw': {
                 'encode': lzw_compress,
                 'decode': lzw_decompress,
@@ -120,8 +120,8 @@ class DataCodec:
         compressed_data = encode_func(original_data)
         compress_time = time.time() - start_time
 
-        header = {"alg": algorithm}
-        header_bytes = json.dumps(header).encode('utf-8') + b'\n' #Заголовок у перший рядок
+        # header = {"a": algorithm}
+        header_bytes = algorithm.encode('utf-8') + b'\n' #Заголовок у перший рядок
         self.write_file(output_file, header_bytes + compressed_data)
         compressed_size = len(compressed_data)
 
@@ -162,10 +162,10 @@ class DataCodec:
 
         #Відділення заголовку (перший рядок) від даних
         header_line, compressed_data = full_data.split(b'\n', 1)
-        header = json.loads(header_line.decode('utf-8'))
+        # header = json.loads(header_line.decode('utf-8'))
 
-        #Зчитування алгоритму
-        algorithm = header['alg']
+        # algorithm = header['a']
+        algorithm = header_line.decode('utf-8').strip()
         decode_func = self.algorithms[algorithm]['decode']
 
         compressed_size = len(compressed_data)

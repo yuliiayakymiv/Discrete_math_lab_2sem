@@ -110,6 +110,7 @@ class BitReader:
 WINDOW_SIZE = 32768   # 32 KB sliding window
 MAX_MATCH_LEN = 258   # maximum match length (per DEFLATE spec)
 MIN_MATCH_LEN = 3     # minimum match length
+MAX_CANDIDATES = 32   # hash bucket entries per position
 
 
 class LZ77Token:
@@ -138,36 +139,53 @@ class LZ77:
         tokens = []
         pos = 0
         n = len(data)
+        hash_table: dict[bytes, list[int]] = {}
 
         while pos < n:
             best_length = 0
             best_distance = 0
 
-            window_start = max(0, pos - WINDOW_SIZE)  # start of the search window
-
             if pos + MIN_MATCH_LEN <= n:
-                candidate = pos - 1
-                while candidate >= window_start:
+                key        = data[pos : pos + MIN_MATCH_LEN]
+                candidates = hash_table.get(key, [])
+
+                for candidate in reversed(candidates[-MAX_CANDIDATES:]):
+                    if pos - candidate > WINDOW_SIZE:
+                        break  # candidates are stored oldest-first, so we can stop early
+
                     match_len = 0
-                    while (match_len < MAX_MATCH_LEN
-                           and pos + match_len < n
-                           and data[candidate + match_len] == data[pos + match_len]):
+                    while (
+                        match_len < MAX_MATCH_LEN
+                        and pos + match_len < n
+                        and data[candidate + match_len] == data[pos + match_len]
+                    ):
                         match_len += 1
-                        # overlapping matches are valid in LZ77
-                        if candidate + match_len >= pos:
-                            pass
 
                     if match_len > best_length:
-                        best_length = match_len
+                        best_length   = match_len
                         best_distance = pos - candidate
 
-                    if best_length == MAX_MATCH_LEN:  # stop early when(if) max match is found
+                    if best_length == MAX_MATCH_LEN:
                         break
 
-                    candidate -= 1
+            if pos + MIN_MATCH_LEN <= n:
+                key    = data[pos : pos + MIN_MATCH_LEN]
+                bucket = hash_table.setdefault(key, [])
+                bucket.append(pos)
+                if len(bucket) > MAX_CANDIDATES * 2:
+                    del bucket[:MAX_CANDIDATES]  # evict oldest entries outside the window
 
             if best_length >= MIN_MATCH_LEN:
                 tokens.append(LZ77Token(distance=best_distance, length=best_length))
+
+                # register intermediate positions so future lookups can find them
+                for skip in range(1, best_length):
+                    p = pos + skip
+                    if p + MIN_MATCH_LEN <= n:
+                        k = data[p : p + MIN_MATCH_LEN]
+                        b = hash_table.setdefault(k, [])
+                        b.append(p)
+
                 pos += best_length
             else:
                 tokens.append(LZ77Token(literal=data[pos]))

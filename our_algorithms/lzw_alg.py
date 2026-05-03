@@ -1,88 +1,90 @@
-"""
-LZW compression for bytes data
-"""
+MAX_BITS = 16
+CLEAR_CODE = 256
+EOF_CODE = 257
+FIRST_CODE = 258
 
 def lzw_compress(data: bytes) -> bytes:
-    """
-    Compress bytes using LZW algorithm.
-    Input: bytes
-    Output: bytes (compressed)
-    """
     if not data:
-        return b''
+        return b""
 
-    # Ініціалізація словника: всі байти 0-255
-    dictionary = {bytes([i]): i for i in range(256)}
-    dict_size = 256
+    table = {bytes([i]): i for i in range(256)}
+    next_code, width = FIRST_CODE, 9
 
-    result = []
-    current = bytes()
+    tagged = [(CLEAR_CODE, width)]
+    prefix = bytes([data[0]])
 
-    for byte in data:
-        new_current = current + bytes([byte])
-        if new_current in dictionary:
-            current = new_current
+    for byte in data[1:]:
+        combined = prefix + bytes([byte])
+        if combined in table:
+            prefix = combined
         else:
-            result.append(dictionary[current])
-            dictionary[new_current] = dict_size
-            dict_size += 1
-            current = bytes([byte])
+            tagged.append((table[prefix], width))
+            if next_code < (1 << MAX_BITS):
+                table[combined] = next_code
+                next_code += 1
+                if next_code > (1 << width) and width < MAX_BITS:
+                    width += 1
+            else:
+                tagged.append((CLEAR_CODE, width))
+                table = {bytes([i]): i for i in range(256)}
+                next_code, width = FIRST_CODE, 9
+            prefix = bytes([byte])
 
-    # Додаємо останній фрагмент
-    if current:
-        result.append(dictionary[current])
+    tagged.append((table[prefix], width))
+    tagged.append((EOF_CODE, width))
 
-    # Конвертуємо коди в байти
-    output = bytearray()
-    for code in result:
-        # Кодуємо кожен код як 2 байти (16 біт)
-        output.append((code >> 8) & 0xFF)
-        output.append(code & 0xFF)
+    bits, nbits, buf = 0, 0, bytearray()
+    for code, w in tagged:
+        bits |= code << nbits
+        nbits += w
+        while nbits >= 8:
+            buf.append(bits & 0xFF)
+            bits >>= 8; nbits -= 8
+    if nbits:
+        buf.append(bits & 0xFF)
 
-    return bytes(output)
+    return bytes(buf)
 
 
 def lzw_decompress(data: bytes) -> bytes:
-    """
-    Decompress LZW compressed bytes.
-    Input: bytes (compressed)
-    Output: bytes (original)
-    """
     if not data:
-        return b''
+        return b""
 
-    # Розпаковуємо коди з байтів (по 2 байти на код)
-    codes = []
-    for i in range(0, len(data), 2):
-        if i + 1 < len(data):
-            code = (data[i] << 8) | data[i + 1]
-            codes.append(code)
+    pos, bits, nbits = 0, 0, 0
 
-    if not codes:
-        return b''
+    def read(width):
+        nonlocal pos, bits, nbits
+        while nbits < width:
+            bits |= data[pos] << nbits
+            nbits += 8; pos += 1
+        value = bits & ((1 << width) - 1)
+        bits >>= width; nbits -= width
+        return value
 
-    # Ініціалізація словника
-    dictionary = {i: bytes([i]) for i in range(256)}
-    dict_size = 256
+    table = {i: bytes([i]) for i in range(256)}
+    next_code, width = FIRST_CODE, 9
 
-    result = bytearray()
-    current = dictionary[codes[0]]
-    result.extend(current)
+    assert read(width) == CLEAR_CODE
+    output, prev = bytearray(), None
 
-    for code in codes[1:]:
-        if code in dictionary:
-            entry = dictionary[code]
-        elif code == dict_size:
-            entry = current + bytes([current[0]])
-        else:
-            raise ValueError(f"Invalid LZW code: {code}")
+    while True:
+        code = read(width)
+        if code == EOF_CODE:
+            break
+        if code == CLEAR_CODE:
+            table = {i: bytes([i]) for i in range(256)}
+            next_code, width, prev = FIRST_CODE, 9, None
+            continue
 
-        result.extend(entry)
+        entry = table[code] if code in table else prev + bytes([prev[0]])
+        output.extend(entry)
 
-        # Додаємо новий запис до словника
-        dictionary[dict_size] = current + bytes([entry[0]])
-        dict_size += 1
+        if prev is not None and next_code < (1 << MAX_BITS):
+            table[next_code] = prev + bytes([entry[0]])
+            next_code += 1
+            if next_code >= (1 << width) and width < MAX_BITS:
+                width += 1
 
-        current = entry
+        prev = entry
 
-    return bytes(result)
+    return bytes(output)

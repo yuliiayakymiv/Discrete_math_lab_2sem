@@ -93,7 +93,7 @@ Examples:
         try:
             print(f"\nBENCHMARK - ALL ALGORITHMS")
             print(f"{'-'*50}")
-            for algo in ['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt']:
+            for algo in ['rle', 'huffman', 'lz77', 'lzw', 'lzma', 'deflate', 'bwt', 'arithmetic']:
                 codec.test_algorithm(args.input, algo)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
