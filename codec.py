@@ -3,14 +3,14 @@ import time
 import json
 
 
-from our_algorithms.lz77 import lz77_compress, lz77_decompress
-from our_algorithms.huffman_2 import huffman_compress, huffman_decompress
-from our_algorithms.lzw_alg import lzw_compress, lzw_decompress
-from our_algorithms.deflate import deflate_compress_bytes, deflate_decompress_bytes
-from our_algorithms.lzma import compress, decompress
-from our_algorithms.burrows_wheeler_transform import bwt_compress, bwt_decompress
-from our_algorithms.run_length_encoding import rle_compress, rle_decompress
-from our_algorithms.arithmetic_coding import arithmetic_compress, arithmetic_decompress
+from algorithms.lz77 import lz77_compress, lz77_decompress
+from algorithms.huffman_2 import huffman_compress, huffman_decompress
+from algorithms.lzw_alg import lzw_compress, lzw_decompress
+from algorithms.deflate import deflate_compress_bytes, deflate_decompress_bytes
+from algorithms.lzma import compress, decompress
+from algorithms.burrows_wheeler_transform import bwt_compress, bwt_decompress
+from algorithms.run_length_encoding import rle_compress, rle_decompress
+from algorithms.arithmetic_coding import arithmetic_compress, arithmetic_decompress
 
 
 class DataCodec:
