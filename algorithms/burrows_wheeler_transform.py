@@ -2,7 +2,7 @@
 Burrows-Wheeler Transform + RLE compression
 """
 
-from our_algorithms.run_length_encoding import rle_compress, rle_decompress
+from algorithms.run_length_encoding import rle_compress, rle_decompress
 
 def _build_sa(data: bytes) -> list[int]:
     n = len(data)
