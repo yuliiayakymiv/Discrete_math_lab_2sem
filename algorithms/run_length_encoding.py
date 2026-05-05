@@ -50,11 +50,11 @@ def rle_decompress(data: bytes) -> bytes:
 
     while i < n:
         flag = data[i]; i += 1
-        if flag == 0x00:          # repeat packet
+        if flag == 0x00:
             count = data[i];     i += 1
             byte  = data[i];     i += 1
             out.extend(bytes([byte]) * count)
-        else:                     # literal packet
+        else:
             out.extend(data[i:i + flag])
             i += flag
 

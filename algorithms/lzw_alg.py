@@ -89,7 +89,7 @@ def lzw_decompress(data: bytes) -> bytes:
             next_code, width, prev = FIRST_CODE, 9, None
             continue
 
-        entry = table[code] if code in table else prev + bytes([prev[0]])
+        entry = table[code] if code in table else (prev + bytes([prev[0]]) if prev else bytes([code & 0xFF]))
         output.extend(entry)
 
         if prev is not None and next_code < (1 << MAX_BITS):
